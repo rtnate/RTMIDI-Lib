@@ -1,7 +1,8 @@
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //
-//!  @file RealtimeController.h 
-//!  @brief RealtimeController abstract class definition
+//!  @file RTMidiRealtimeControllers.h 
+//!  @brief RealtimeController and RealtimeClockController class interface
+//!        definitions
 //!
 //!  @author Nate Taylor 
 
@@ -65,6 +66,11 @@
 
 namespace RTMIDI 
 {
+    /**
+     * @brief Abstract class (interface) for a class that 
+     *        receives control from MIDI realtime messages
+     * 
+     */
     class RealtimeController
     {
         public:
@@ -76,14 +82,37 @@ namespace RTMIDI
             {
                 lastSensingReceived = timestamp;
             }
+            bool sensingActive(Word currentTimestamp)
+            {
+                return currentTimestamp < (lastSensingReceived + sensingTimeout); 
+            }
         protected:
             const Word sensingTimeout;
             Word lastSensingReceived;
     };
 
+    /**
+     * @brief Abstract class (interface) for a class that 
+     *        receives control from MIDI clock messages
+     * 
+     */
     class RealtimeClockController 
     {
         public:
+            /**
+             * @brief Register the reception of a MIDI clock message.
+             * 
+             *        This function will normally be called from an interrupt,
+             *        so it should be interrupt safe.
+             * 
+             *        Note: The units or reference point for timestamps is
+             *              implemenation specific.  
+             *
+             * @see RTMIDI::RxHandler
+             * 
+             * @param timestamp The timestamp provided when the MIDI clock message
+             *                  was received.
+             */
             virtual void registerClockPulse(Word timestamp) = 0;
     };
 

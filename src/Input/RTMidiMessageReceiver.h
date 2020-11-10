@@ -1,7 +1,7 @@
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //
-//!  @file RTMidiRxHandler.cpp 
-//!  @brief RTMIDI RxHandler class implementations
+//!  @file RTMidiMessageHandler.h 
+//!  @brief RTMIDI MessageHandler class definition
 //!
 //!  @author Nate Taylor 
 
@@ -58,104 +58,35 @@
 //
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#include "./RTMidiRXHandler.h"
+#ifndef _RT_MIDI_RX_MESSAGE_HANDLER_H_
+#define _RT_MIDI_RX_MESSAGE_HANDLER_H_
 
-using namespace RTMIDI;
+#include "../Core/RTMidiCore.h"
 
-void RxHandler::receiveByte(Byte ip, Word timestamp)
+namespace RTMIDI 
 {
-    if (DataByte::isStatusByte(ip))
+    template<unsigned int LENGTH, typename INDEX_TYPE>
+    class MessageReceiver 
     {
-        processStatusByte(ip, timestamp);
-    }
-    else processDataByte(ip);
-}
+        public:
+            void receiveMessage(Message msg);
 
-void RxHandler::processStatusByte(Byte ip, Word timestamp)
-{
-    StatusByte status(ip);
-    if (status.isSystemRealtime())
-    {
-        this->realtimeMessageReceived(Message(ip), timestamp);
-    }
-    else
-    {
-        if (status.isSystemCommonCode(SystemCommonCode::SysExStart))
-        {
-            sysExInProgress = true;
-            this->sysExStatusChanged(false, true);
-        }
-        else 
-        {
-            sysExInProgress = false;
-            runningStatusBuffer = status;
-            thirdByteExpected = false;
-            this->sysExStatusChanged(true, false);
-            if (status.isSystemCommonCode(SystemCommonCode::TuneRequest))
+            void processMessages()
             {
-                this->standardMessageReceived(Message(ip));
+                while(messageBuffer.available())
+                {
+                    Message msg = messageBuffer.read();
+                    if (msg.getStatus().isSystemCommon())
+                    {
+                        this->processSystemCommonMessage(msg);
+                    }
+                    else this->processChannelVoiceMessage(msg);
+                }
             }
-        }
-    }
+        protected:
+            MessageBuffer<LENGTH, INDEX_TYPE> messageBuffer;
+            virtual void processChannelVoiceMessage(Message msg) = 0;
+            virtual void processSystemCommonMessage(Message msg) = 0;
+    };
 }
-
-void RxHandler::processDataByte(Byte ip)
-{
-    if (sysExInProgress)
-    {
-        this->sysExByteReceived(ip);
-        return;
-    }
-    if (thirdByteExpected)
-    {
-        thirdByteExpected = 0;
-        if (runningStatusBuffer >= 0xF0) runningStatusBuffer = 0;
-        Message msg(runningStatusBuffer, dataByteBuffer, ip);
-        this->standardMessageReceived(msg);
-    }
-    else 
-    {
-        if (runningStatusBuffer == 0) return;
-        if (runningStatusBuffer < 0xC0) 
-        {
-            thirdByteExpected = true;
-            dataByteBuffer = ip;
-            return;
-        }
-        else if (runningStatusBuffer < 0xE0)
-        {
-            this->standardMessageReceived(Message(runningStatusBuffer, ip));
-            return;
-        }
-        else if (runningStatusBuffer < 0xF0)
-        {
-            thirdByteExpected = true;
-            dataByteBuffer = ip;
-            return;
-        }
-        else
-        {
-            if (runningStatusBuffer == 0xF2)
-            {
-                thirdByteExpected = true;
-                dataByteBuffer = ip;
-                return;
-            }
-            if (runningStatusBuffer == 0xF3 || runningStatusBuffer == 0xF2)
-            {
-                Message msg(runningStatusBuffer, ip);
-                runningStatusBuffer = 0;
-                this->standardMessageReceived(msg);
-            }
-        }
-    }
-}
-
-void RxHandler::receiveMessage(Message msg, Word timestamp)
-{
-    if (msg.getStatus().isSystemRealtime())
-    {
-        this->realtimeMessageReceived(msg, timestamp);
-    }
-    else this->standardMessageReceived(msg);
-}
+#endif

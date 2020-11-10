@@ -65,7 +65,7 @@ using namespace RTMIDI;
 #define CALL_LISTENER_FUNCTION(X) \
     if (listener) listener->X
 
-void InputChannel::processMessage(Message msg)
+void InputChannel::sendMessage(Message msg)
 {
     auto status = msg.getStatus();
     if (status.appliesToChannel(midiCh))

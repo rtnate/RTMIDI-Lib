@@ -134,6 +134,19 @@ namespace RTMIDI
                 return (original & 0x0F) | (newNibble << 4);
             }
 
+            /**
+             * @brief Concenates two MIDI Data bytes to get a 14-bit value
+             * 
+             * @param lsb The byte containing the least significant 7 bits
+             * @param msb The byte containing the most significant 7 bits
+             * @return constexpr Word The 14 bit unsigned value
+             */
+            static constexpr Word concatenate(Byte lsb, Byte msb)
+            {
+                return ( (static_cast<Word>(msb) & 0x7F) << 7 ) |
+                       (static_cast<Word>(lsb) & 0x7F);
+            }
+
             DataByte(Byte byte): c(byte){};
 
             DataByte(): c(Invalid){};

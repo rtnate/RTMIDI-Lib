@@ -66,25 +66,95 @@
 
 namespace RTMIDI 
 {
+    /**
+     * @brief Class defining a MIDI Input channel.  
+     * 
+     *        A MIDI input channel is an object that receives MIDI channel
+     *        voice messages from a MIDI Input device.  The InputChannel class
+     *        can be assigned an RTMIDI::Channel.  If set to a single MIDI 
+     *        channel, it will forward messages to an attached InputChannelListener
+     *        if the voice message belongs to the correct channel.  It may 
+     *        also be set to ChOmni to receive messages from all channels, 
+     *        or ChNone to receive no messages.
+     * 
+     */
     class InputChannel
     {
         public:
-            void processMessage(Message msg);
+            /**
+             * @brief Default constructor creates an InputChannel with no 
+             *        listener attached and the channel set to ChNone.
+             */
+            InputChannel(): listener(nullptr), midiCh(ChNone){};
+
+            /**
+             * @brief Constructs an input channel with the supplied 
+             *        Channel and (optionally) the supplied listener.
+             * 
+             * @param ch The MIDI Channel to assign the InputChannel to.
+             * 
+             * @param initialListener (optional) The initial InputChannelListener 
+             *                                   to attatch to the InputChannel.
+             */
+            InputChannel(Channel ch, 
+                         InputChannelListener* initialListener = nullptr): 
+                listener(initialListener), midiCh(ch){};
+
+            /**
+             * @brief Sends a message to the input channel.  If this channel
+             *        is assigned to a Channel that should receive the message,
+             *        it will forward it appropriately to the InputChannel's
+             *        listener (if attached)
+             * 
+             * @param msg The message to send to the InputChannel
+             */
+            void sendMessage(Message msg);
             
+            /**
+             * @brief Attaches the provided InputChannelListener object 
+             *        the this InputChannel.
+             * 
+             * @param newListener A pointer to an InputChannelListener object 
+             *                    that should handle events from this channel.
+             */
             void attachListener(InputChannelListener* newListener)
             {
                 listener = newListener;
             }
+
+            /**
+             * @brief Dettaches the currentlty assigned InputChannelListener
+             *        from this InputChannel
+             * 
+             */
             void dettachListener()
             {   
                 listener = nullptr;
             }
 
+            /**
+             * @brief Get this InputChannel's currently assigned MIDI Channel 
+             * 
+             * @return The Channel this InputChannel is assigned to
+             */
             Channel midiChannel() const { return midiCh; };
 
+            /**
+             * @brief Set this InputChannel's currently assigned MIDI Channel
+             * 
+             * @param ch The Channel to assign this InputChannel to
+             */
             void setMidiChannel(Channel ch){ midiCh = ch; };
         protected:
+            /**
+             * @brief The currently attached InputChannelListener object,
+             *        or nullptr if none is attached.
+             */
             InputChannelListener* listener;
+
+            /**
+             * @brief The currentlty assigned MIDI Channel.
+             */
             Channel midiCh;
     };
 
@@ -104,7 +174,7 @@ namespace RTMIDI
                 {
                     for(unsigned int i = 0; i < length; i++)
                     {
-                        list[i].processMessage(msg);
+                        list[i].sendMessage(msg);
                     }
                 }
             }

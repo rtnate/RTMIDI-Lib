@@ -2,15 +2,22 @@
 
 #include "./RTMidiInputDevice.h"
 
+#include "../../../SAMD21/include/SAMD21_Debug.h"
+
 using namespace RTMIDI;
 
 void InputDevice::standardMessageReceived(Message msg)
 {
+    // DEBUG_PRINTFLN("Midi RX - Status: %#X Data0: %#X Data1: %#X", 
+    //     msg.getStatus(), 
+    //     msg.getFirstDataByte(), 
+    //     msg.getSecondDataByte());
     messageBuffer.push(msg);
 }
 
 void InputDevice::realtimeMessageReceived(Message msg, Word timestamp)
 {   
+    auto status = msg.getStatus();
     auto code = msg.getStatus().getSystemCommonCode();
     switch(code)
     {

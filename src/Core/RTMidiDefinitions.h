@@ -63,4 +63,9 @@
 
 #include "./RTMidiDependencies.h"
 
+namespace RTMIDI 
+{
+    constexpr uint32_t UartBaudrate = 31250;
+}
+
 #endif
