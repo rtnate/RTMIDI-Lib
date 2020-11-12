@@ -69,9 +69,9 @@ namespace RTMIDI
 
     struct StandardMessageItems
     {
-        Byte reserved;
         Byte status; 
         Byte data[2];
+        Byte reserved;
     };
 
     union StandardMessageData 

@@ -84,6 +84,10 @@ namespace RTMIDI
     {
         public:
 
+            static Message invalid()
+            {
+                return Message();
+            }
             /************************************
              *          Constructors            *
              ************************************/
@@ -113,7 +117,7 @@ namespace RTMIDI
                         static_cast<Byte>(data1)){};
 
             Message(Byte status, Byte data0, Byte data1 = DataByte::Invalid): 
-                msg{ .byte={0, status, data0, data1}}{};
+                msg{ .byte={status, data0, data1, 0x0}}{};
 
             Message(Word dataWord):
                 msg{ .word=dataWord }{};
@@ -196,7 +200,7 @@ namespace RTMIDI
              */
             const Byte* getBytes() 
             {
-                return &(msg.byte[1]);
+                return &(msg.byte[0]);
             }
 
             /**
@@ -223,6 +227,14 @@ namespace RTMIDI
                 return getStatus().isValid();
             }
 
+            Byte byteLength() const 
+            {
+                if (msg.items.data[1] != DataByte::Invalid) return 3;
+                else if (msg.items.data[0] != DataByte::Invalid) return 2;
+                else if (msg.items.status != DataByte::Invalid) return 1;
+                else return 0;
+            }
+
             /**
              * @brief  Operator overload allowing this class to be implicitly
              *         cast to its underlying data structure.
@@ -243,6 +255,11 @@ namespace RTMIDI
             operator Word()
             {
                 return msg.word;
+            }
+
+            Byte getByte(unsigned int index) const
+            {
+                return msg.byte[index % 4];
             }
 
 

@@ -74,32 +74,13 @@ namespace RTMIDI
     class RealtimeController
     {
         public:
-            RealtimeController(Word timeout): sensingTimeout(timeout){};
-            virtual void start() = 0;
-            virtual void stop() = 0;
-            virtual void resume() = 0;
-            void sensingInputReceived(Word timestamp)
-            {
-                lastSensingReceived = timestamp;
-            }
-            bool sensingActive(Word currentTimestamp)
-            {
-                return currentTimestamp < (lastSensingReceived + sensingTimeout); 
-            }
-        protected:
-            const Word sensingTimeout;
-            Word lastSensingReceived;
-    };
+            RealtimeController(){};
+            virtual void start(){};
+            virtual void stop(){};
+            virtual void resume(){};
+            virtual void sensingInputReceived(Word timestamp){};
 
-    /**
-     * @brief Abstract class (interface) for a class that 
-     *        receives control from MIDI clock messages
-     * 
-     */
-    class RealtimeClockController 
-    {
-        public:
-            /**
+             /**
              * @brief Register the reception of a MIDI clock message.
              * 
              *        This function will normally be called from an interrupt,
@@ -113,8 +94,33 @@ namespace RTMIDI
              * @param timestamp The timestamp provided when the MIDI clock message
              *                  was received.
              */
-            virtual void registerClockPulse(Word timestamp) = 0;
+            virtual void registerClockPulse(Word timestamp){};
     };
+
+    // /**
+    //  * @brief Abstract class (interface) for a class that 
+    //  *        receives control from MIDI clock messages
+    //  * 
+    //  */
+    // class RealtimeClockController 
+    // {
+    //     public:
+    //         /**
+    //          * @brief Register the reception of a MIDI clock message.
+    //          * 
+    //          *        This function will normally be called from an interrupt,
+    //          *        so it should be interrupt safe.
+    //          * 
+    //          *        Note: The units or reference point for timestamps is
+    //          *              implemenation specific.  
+    //          *
+    //          * @see RTMIDI::RxHandler
+    //          * 
+    //          * @param timestamp The timestamp provided when the MIDI clock message
+    //          *                  was received.
+    //          */
+    //         virtual void registerClockPulse(Word timestamp) = 0;
+    // };
 
 }
 #endif

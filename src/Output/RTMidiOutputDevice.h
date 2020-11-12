@@ -1,7 +1,7 @@
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //
-//!  @file RTMidiInputDevice.h 
-//!  @brief RTMIDI MidiInputDevice class
+//!  @file RTMidiOutputDevice.h 
+//!  @brief RTMIDI Output Device class definition
 //!
 //!  @author Nate Taylor 
 
@@ -58,73 +58,38 @@
 //
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#ifndef _RT_MIDI_INPUT_INPUT_DEVICE_H_
-#define _RT_MIDI_INPUT_INPUT_DEVICE_H_
+#ifndef _RT_MIDI_OUTPUT_OUTPUT_DEVICE_H_
+#define _RT_MIDI_OUTPUT_OUTPUT_DEVICE_H_
 
 #include "../Core/RTMidiCore.h"
-#include "./RTMidiRXHandler.h"
-#include "./RTMidiMessageReceiver.h"
-#include "./RTMidiRealtimeControllers.h"
-#include "./RTMidiInputChannel.h"
+#include "./RTMidiTxHandler.h"
 
 namespace RTMIDI 
 {
-    class GenericInputDevice: public RxHandler 
+    class GenericOutputDevice: public TxHandler 
     {
-        public:
-            GenericInputDevice(InputChannelList& devChannels,
-                               RealtimeController* realtimeController = nullptr):
-                realtimeCtrl(realtimeController),
-                channels(devChannels){};
-
-            GenericInputDevice(InputChannel* inputChannel,
-                               RealtimeController* realtimeController = nullptr):
-                realtimeCtrl(realtimeController),
-                channels(inputChannel, 1){};
-
-            GenericInputDevice(InputChannel* inputChannels,
-                               unsigned int noInputChannels,
-                               RealtimeController* realtimeController = nullptr):
-                realtimeCtrl(realtimeController),
-                channels(inputChannels, noInputChannels){};
-
-            void realtimeMessageReceived(Message msg, Word timestamp) override;
-            void sysExStatusChanged(bool terminated, bool startedOrValid) override {};
-            void sysExByteReceived(Byte byte) override {};   
         protected:
-            RealtimeController *const realtimeCtrl;
-            InputChannelList channels;
+
     };
 
-    template<unsigned int BUFFER_LENGTH, typename BUFFER_INDEX = uint8_t>
-    class InputDevice: public GenericInputDevice, 
-                       public MessageReceiver<BUFFER_LENGTH, BUFFER_INDEX>
+    template<unsigned int BUFFER_SIZE, typename BUFFER_INDEX = uint8_t>
+    class OutputDevice: public GenericOutputDevice
     {
         public:
-            InputDevice(InputChannelList& devChannels,
-                        RealtimeController* realtimeController = nullptr):
-                GenericInputDevice(devChannels, realtimeController){};
-
-            InputDevice(InputChannel* inputChannel,
-                        RealtimeController* realtimeController = nullptr):
-                GenericInputDevice(inputChannel, realtimeController){};
-
-            InputDevice(InputChannel* inputChannels,
-                        unsigned int noInputChannels,
-                        RealtimeController* realtimeController = nullptr):
-                GenericInputDevice(inputChannels, noInputChannels, 
-                                   realtimeController){};
-            
-            void standardMessageReceived(Message msg) override
+            void sendMessage(Message msg) override 
             {
-                this->messageBuffer.push(msg);
+                transmitBuffer.push(msg);
             }
         protected:
-            void processChannelVoiceMessage(Message msg) override
+            MessageBuffer<BUFFER_SIZE, BUFFER_INDEX> transmitBuffer;
+            Message getNextMessage() override 
             {
-                channels.dispatchMessage(msg);
+                if (transmitBuffer.available())
+                {
+                    return transmitBuffer.pop();
+                }
+                else return Message::invalid();
             }
-            void processSystemCommonMessage(Message msg) override {};
     };
 }
 #endif
