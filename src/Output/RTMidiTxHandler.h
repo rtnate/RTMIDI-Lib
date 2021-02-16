@@ -69,7 +69,7 @@ namespace RTMIDI
     class TxHandler: public Transmitter
     {
         public:
-            static constexpr Byte MessageBufferEmpty = 0x254;
+            static constexpr Byte MessageBufferEmpty = 254u;
             virtual int getNextByte();
             void setRealtimeByte(Byte value);
         protected:

@@ -1,7 +1,7 @@
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //
-//!  @file RTMidiOutputDevice.h 
-//!  @brief RTMIDI Output Device class definition
+//!  @file RTMidiOutputs.h 
+//!  @brief RTMIDI Output include header
 //!
 //!  @author Nate Taylor 
 
@@ -58,47 +58,12 @@
 //
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#ifndef _RT_MIDI_OUTPUT_OUTPUT_DEVICE_H_
-#define _RT_MIDI_OUTPUT_OUTPUT_DEVICE_H_
+#ifndef _RT_MIDI_OUTPUT_OUTPUTS_H_
+#define _RT_MIDI_OUTPUT_OUTPUTS_H_
 
 #include "../Core/RTMidiCore.h"
+#include "./RTMidiTransmitter.h"
 #include "./RTMidiTxHandler.h"
-#include "./RTMidiOutputChannel.h"
+#include "./RTMidiOutputDevice.h"
 
-namespace RTMIDI 
-{
-    class GenericOutputDevice: public TxHandler 
-    {
-        public:
-            void attachChannel(OutputChannel& ch)
-            {
-                ch.attachTransmitter(this);
-            };
-            void attachChannels(OutputChannelList& chs)
-            {
-                chs.attachTransmitter(this);
-            };
-        protected:
-    };
-
-    template<unsigned int BUFFER_LENGTH, typename BUFFER_INDEX = uint8_t>
-    class OutputDevice: public GenericOutputDevice
-    {
-        public:
-            void sendMessage(Message msg) override 
-            {
-                transmitBuffer.push(msg);
-            }
-        protected:
-            MessageBuffer<BUFFER_LENGTH, BUFFER_INDEX> transmitBuffer;
-            Message getNextMessage() override 
-            {
-                if (transmitBuffer.available())
-                {
-                    return transmitBuffer.pop();
-                }
-                else return Message::invalid();
-            }
-    };
-}
 #endif

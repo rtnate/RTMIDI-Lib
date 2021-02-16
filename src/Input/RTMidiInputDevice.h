@@ -72,7 +72,7 @@ namespace RTMIDI
     class GenericInputDevice: public RxHandler 
     {
         public:
-            GenericInputDevice(InputChannelList& devChannels,
+            GenericInputDevice(InputChannelList devChannels,
                                RealtimeController* realtimeController = nullptr):
                 realtimeCtrl(realtimeController),
                 channels(devChannels){};
@@ -101,7 +101,7 @@ namespace RTMIDI
                        public MessageReceiver<BUFFER_LENGTH, BUFFER_INDEX>
     {
         public:
-            InputDevice(InputChannelList& devChannels,
+            InputDevice(InputChannelList devChannels,
                         RealtimeController* realtimeController = nullptr):
                 GenericInputDevice(devChannels, realtimeController){};
 

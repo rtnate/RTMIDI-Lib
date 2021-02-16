@@ -1,7 +1,7 @@
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //
-//!  @file RTMidiOutputDevice.h 
-//!  @brief RTMIDI Output Device class definition
+//!  @file RTMidiThruDevice.h 
+//!  @brief RT GenericMidiThru Device and MidiThruDevice class definitions
 //!
 //!  @author Nate Taylor 
 
@@ -58,42 +58,87 @@
 //
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#ifndef _RT_MIDI_OUTPUT_OUTPUT_DEVICE_H_
-#define _RT_MIDI_OUTPUT_OUTPUT_DEVICE_H_
+#ifndef _RT_MIDI_THRU_DEVICE_H_
+#define _RT_MIDI_THRU_DEVICE_H_
 
 #include "../Core/RTMidiCore.h"
-#include "./RTMidiTxHandler.h"
-#include "./RTMidiOutputChannel.h"
+#include "../Input/RTMidiInputs.h"
+#include "../Output/RTMidiOutputs.h"
 
 namespace RTMIDI 
 {
-    class GenericOutputDevice: public TxHandler 
+    class GenericThruDevice: public GenericInputDevice, public GenericOutputDevice
     {
         public:
-            void attachChannel(OutputChannel& ch)
-            {
-                ch.attachTransmitter(this);
-            };
-            void attachChannels(OutputChannelList& chs)
-            {
-                chs.attachTransmitter(this);
-            };
+            GenericThruDevice(InputChannelList devChannels,
+                               RealtimeController* realtimeController = nullptr):
+                GenericInputDevice(devChannels, realtimeController){};
+
+            GenericThruDevice(InputChannel* inputChannel,
+                               RealtimeController* realtimeController = nullptr):
+                GenericInputDevice(inputChannel, realtimeController){};
+
+            GenericThruDevice(InputChannel* inputChannels,
+                               unsigned int noInputChannels,
+                               RealtimeController* realtimeController = nullptr):
+                GenericInputDevice(inputChannels, 
+                                   noInputChannels, 
+                                   realtimeController){};
+
+            void realtimeMessageReceived(Message msg, Word timestamp) override;
         protected:
+            bool thruEnabled;
+            bool realtimeThruEnabled;
     };
 
     template<unsigned int BUFFER_LENGTH, typename BUFFER_INDEX = uint8_t>
-    class OutputDevice: public GenericOutputDevice
+    class ThruDevice: public GenericThruDevice, 
+                       public MessageReceiver<BUFFER_LENGTH, BUFFER_INDEX>
     {
         public:
+            ThruDevice(InputChannelList devChannels,
+                        RealtimeController* realtimeController = nullptr):
+                GenericThruDevice(devChannels, realtimeController){};
+
+            ThruDevice(InputChannel* inputChannel,
+                        RealtimeController* realtimeController = nullptr):
+                GenericThruDevice(inputChannel, realtimeController){};
+
+            ThruDevice(InputChannel* inputChannels,
+                        unsigned int noInputChannels,
+                        RealtimeController* realtimeController = nullptr):
+                GenericThruDevice(inputChannels, noInputChannels, 
+                                   realtimeController){};
+            
+            void standardMessageReceived(Message msg) override
+            {
+                this->messageBuffer.push(msg);
+                if (this->thruEnabled) this->thruBuffer.push(msg);
+            };
+
             void sendMessage(Message msg) override 
             {
                 transmitBuffer.push(msg);
             }
+
         protected:
             MessageBuffer<BUFFER_LENGTH, BUFFER_INDEX> transmitBuffer;
+            MessageBuffer<BUFFER_LENGTH, BUFFER_INDEX> thruBuffer;
+
+            void processChannelVoiceMessage(Message msg) override
+            {
+                channels.dispatchMessage(msg);
+            }
+
+            void processSystemCommonMessage(Message msg) override {};
+
             Message getNextMessage() override 
             {
-                if (transmitBuffer.available())
+                if (thruBuffer.available())
+                {
+                    return thruBuffer.pop();
+                }
+                else if (transmitBuffer.available())
                 {
                     return transmitBuffer.pop();
                 }
@@ -101,4 +146,6 @@ namespace RTMIDI
             }
     };
 }
+
+
 #endif

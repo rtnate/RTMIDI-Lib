@@ -84,6 +84,30 @@ namespace RTMIDI
     {
         public:
 
+            /************************************
+             *          Static Methods          *
+             ************************************/
+
+            static Message createChannelMessage(Channel ch, StatusCode status, 
+                                                DataByte data0 = DataByte::Invalid, 
+                                                DataByte data1 = DataByte::Invalid)
+            {
+                StatusByte newStatus(status, ch);
+                return Message(newStatus, data0, data1);
+            };
+
+            static Message createProgramChange(Channel ch, DataByte no)
+            {
+                return createChannelMessage(ch, StatusCode::ProgramChange, no);
+            };
+
+            static Message createControlChange(Channel ch, DataByte no, 
+                                               DataByte value)
+            {
+                return createChannelMessage(ch, StatusCode::ControlChange, 
+                                            no, value);
+            };
+
             static Message invalid()
             {
                 return Message();
@@ -233,6 +257,21 @@ namespace RTMIDI
                 else if (msg.items.data[0] != DataByte::Invalid) return 2;
                 else if (msg.items.status != DataByte::Invalid) return 1;
                 else return 0;
+            }
+
+            void setChannel(Channel ch)
+            {
+                StatusByte currentStatus = getStatus();
+                if (currentStatus.isChannelVoice())
+                {
+                    currentStatus.setChannel(ch);
+                }
+                setStatus(currentStatus);
+            }
+
+            void setStatus(StatusByte status)
+            {
+                msg.items.status = static_cast<Byte>(status);
             }
 
             /**

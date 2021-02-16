@@ -1,7 +1,7 @@
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //
-//!  @file RTMidiOutputDevice.h 
-//!  @brief RTMIDI Output Device class definition
+//!  @file RTMidiOutputChannel.h 
+//!  @brief RTMIDI OutputChannel class definition
 //!
 //!  @author Nate Taylor 
 
@@ -58,47 +58,87 @@
 //
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#ifndef _RT_MIDI_OUTPUT_OUTPUT_DEVICE_H_
-#define _RT_MIDI_OUTPUT_OUTPUT_DEVICE_H_
+#ifndef _RT_MIDI_OUTPUT_OUTPUT_CHANNEL_H_
+#define _RT_MIDI_OUTPUT_OUTPUT_CHANNEL_H_
 
 #include "../Core/RTMidiCore.h"
-#include "./RTMidiTxHandler.h"
-#include "./RTMidiOutputChannel.h"
+#include "./RTMidiTransmitter.h"
 
 namespace RTMIDI 
 {
-    class GenericOutputDevice: public TxHandler 
+    class OutputChannel: public Transmitter
     {
         public:
-            void attachChannel(OutputChannel& ch)
+            OutputChannel(Channel ch = ChNone, 
+                          Transmitter* attachedTransmitter = nullptr): 
+                transmitter(attachedTransmitter), channel(ch){};
+
+            void attachTransmitter(Transmitter* newTransmitter)
             {
-                ch.attachTransmitter(this);
+                //Prevent an accidental circular reference where this becomes
+                //it's own transmitter, that could be very bad
+                if (newTransmitter == static_cast<Transmitter*>(this))
+                {
+                    return;
+                }
+                transmitter = newTransmitter;
             };
-            void attachChannels(OutputChannelList& chs)
+
+            void dettachTransmitter()
             {
-                chs.attachTransmitter(this);
+                transmitter = nullptr;
             };
+
+            void sendProgramChangeMessage(Byte programNumber)
+            {
+                transmitMessage(Message::createProgramChange(channel, 
+                                                             programNumber));
+            };
+
+            void sendControlChangeMessage(Byte ccNumber, Byte ccValue)
+            {
+                transmitMessage(Message::createControlChange(channel, 
+                                                             ccNumber,
+                                                             ccValue));
+            };
+
+            void sendMessage(Message msg) override
+            {
+                if (!msg.getStatus().isChannelVoice()) return;
+                msg.setChannel(channel);
+                transmitMessage(msg);
+            }
+
         protected:
+            Transmitter* transmitter;
+            Channel channel;
+            void transmitMessage(Message msg)
+            {
+                if (transmitter) transmitter->sendMessage(msg);
+            }
     };
 
-    template<unsigned int BUFFER_LENGTH, typename BUFFER_INDEX = uint8_t>
-    class OutputDevice: public GenericOutputDevice
+    class OutputChannelList 
     {
         public:
-            void sendMessage(Message msg) override 
+
+            OutputChannelList(OutputChannel* channels, 
+                             unsigned int listLength = 1):
+                                list(channels), length(listLength){};
+
+            OutputChannelList(const OutputChannelList& other):
+                list(other.list), length(other.length){};
+
+            void attachTransmitter(Transmitter* newTransmitter)
             {
-                transmitBuffer.push(msg);
+                for (unsigned int i = 0; i < length; i++)
+                {
+                    list[i].attachTransmitter(newTransmitter);
+                }
             }
         protected:
-            MessageBuffer<BUFFER_LENGTH, BUFFER_INDEX> transmitBuffer;
-            Message getNextMessage() override 
-            {
-                if (transmitBuffer.available())
-                {
-                    return transmitBuffer.pop();
-                }
-                else return Message::invalid();
-            }
+            OutputChannel* list;
+            unsigned int length;
     };
 }
 #endif
